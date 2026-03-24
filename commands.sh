@@ -1,5 +1,2 @@
-Run Sever
-npx tsx src/server/server.ts  
-
-Run Client
+Run Client + Server
 npm run dev

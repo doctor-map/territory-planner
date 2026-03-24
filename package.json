@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite\" \"npm run start:server\"",
-    "start:server": "ts-node/esm --project tsconfig.server.json src/server/server.ts",
+    "start:server": "nodemon --exec npx tsx src/server/server.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "express": "^5.2.1",
+    "nodemon": "^3.1.14",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tsx": "^4.21.0"
