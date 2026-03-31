@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import router from './routes/api.ts';
+import cors from 'cors';
 
 const app = express();
 const PORT = 3000;
@@ -8,6 +9,9 @@ const PORT = 3000;
 // Parsing incoming requests
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// CORS configuration
+app.use(cors());
 
 // API routes
 app.use('/api', router);

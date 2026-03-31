@@ -12,14 +12,18 @@ router.get('/test', (req, res) => {
 router.get('/npi', async (req, res) => {
     console.log('NPI route hit');
 
+    const searchCity = req.query.city;
+    console.log(`City in api.ts`, searchCity);
+
     try {
-      const response = await fetch('https://npiregistry.cms.hhs.gov/api/?version=2.1&city=baltimore');
+      const response = await fetch(`https://npiregistry.cms.hhs.gov/api/?version=2.1&city=${searchCity}`);
       const data = await response.json();
       
       // do something with data if needed, e.g., filter or transform it before sending to client
       const filteredData = data.results.map((provider: any) => ({
         npi: provider.number,
-        name: provider.basic.first_name,
+        name: provider.basic.first_name || provider.basic.authorized_official_first_name,
+        //inconsitent first name field, so check both 
         city: provider.addresses[0].city,
         state: provider.addresses[0].state,
       }));
@@ -33,7 +37,6 @@ router.get('/npi', async (req, res) => {
         console.error('Error fetching NPI data:', error);
         return res.status(500).json({ error: 'Failed to fetch NPI data' });
     };
-
 });
 
 export default router;

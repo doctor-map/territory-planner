@@ -1,2 +1,2 @@
 Run Client + Server
-npm run dev
+npm run devcl
