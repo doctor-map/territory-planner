@@ -2,6 +2,20 @@ import express from 'express';
 
 const router = express.Router();
 
+// Types
+type NpiProvider = {
+  number: string;
+  basic: {
+    first_name: string;
+    last_name: string;
+    enumeration_type: string;
+  }
+}
+
+type NpiTaxonomy = {
+  desc: string;
+}
+
 // Test route
 router.get('/test', (req, res) => {
     console.log('API test route hit');
@@ -16,16 +30,20 @@ router.get('/npi', async (req, res) => {
     console.log(`City in api.ts`, searchCity);
 
     try {
-      const response = await fetch(`https://npiregistry.cms.hhs.gov/api/?version=2.1&city=${searchCity}`);
+      const response = await fetch(`https://npiregistry.cms.hhs.gov/api/?version=2.1&city=${searchCity}&limit=200`);
       const data = await response.json();
       
       // do something with data if needed, e.g., filter or transform it before sending to client
       const filteredData = data.results.map((provider: any) => ({
         npi: provider.number,
-        name: provider.basic.first_name || provider.basic.authorized_official_first_name,
         //inconsitent first name field, so check both 
+        first_name: provider.basic.first_name || provider.basic.authorized_official_first_name,
+        last_name: provider.basic.last_name || provider.basic.authorized_official_last_name,
+        npi_type: provider.basic.enumeration_type,
         city: provider.addresses[0].city,
         state: provider.addresses[0].state,
+        last_updated: provider.basic.last_updated,
+        specialty: provider.taxonomies.map((taxonomy): NpiTaxonomy => taxonomy.desc).join(', ') 
       }));
       res.locals.data = filteredData;
       

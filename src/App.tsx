@@ -34,7 +34,7 @@ function App() {
 
       <ul>
         {searchResults.map((result: any) => (
-          <li key={result.id}>{result.name}</li>
+          <li key={result.npi}> first name: {result.first_name}, last name: {result.last_name}, NPI type: {result.npi_type} specialty: {result.specialty}, last updated: {result.last_updated}</li>
         ))}
       </ul>
     </div>
