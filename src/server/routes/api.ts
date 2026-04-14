@@ -34,20 +34,40 @@ router.get('/npi', async (req, res) => {
       const data = await response.json();
       
       // do something with data if needed, e.g., filter or transform it before sending to client
+      // TODO: for duplicate entries, find credentials and/or telephone numbers
       const filteredData = data.results.map((provider: any) => ({
         npi: provider.number,
         //inconsitent first name field, so check both 
         first_name: provider.basic.first_name || provider.basic.authorized_official_first_name,
         last_name: provider.basic.last_name || provider.basic.authorized_official_last_name,
-        npi_type: provider.basic.enumeration_type,
+        npi_type: provider.enumeration_type,
         city: provider.addresses[0].city,
         state: provider.addresses[0].state,
         last_updated: provider.basic.last_updated,
         specialty: provider.taxonomies.map((taxonomy): NpiTaxonomy => taxonomy.desc).join(', ') 
       }));
-      res.locals.data = filteredData;
+
+  
+      // Grouping providers with multiple entries into a single entry based on name
+      const providerMap = new Map();
+      for (const provider of filteredData) {
+        // TODO: could possibly filter safer with phone number or credentials
+        const providerKey = `${provider.first_name} ${provider.last_name}`;
+        if (!providerMap.has(providerKey)) {
+          providerMap.set(providerKey, provider);
+        } else {
+          const existingProvider = providerMap.get(providerKey);
+          // Merge npi numbers and specialties if the provider already exists
+          existingProvider.npi += `, ${provider.npi}`;
+          existingProvider.specialty += `, ${provider.specialty}`;
+        }
+      }
+
+      console.log('ProviderMap:', providerMap);
+
+      res.locals.data = providerMap.size > 0 ? Array.from(providerMap.values()) : [];
       
-      console.log('NPI API response:', res.locals.data);
+      // console.log('NPI API response:', res.locals.data);
 
       return res.json({ data: res.locals.data });
 
