@@ -27,31 +27,38 @@ router.get('/npi', async (req, res) => {
     console.log('NPI route hit');
 
     const searchCity = req.query.city;
+    const searchSpecialty = req.query.specialty;
     console.log(`City in api.ts`, searchCity);
 
     try {
-      const response = await fetch(`https://npiregistry.cms.hhs.gov/api/?version=2.1&city=${searchCity}&limit=200`);
+      const response = await fetch(`https://npiregistry.cms.hhs.gov/api/?version=2.1&city=${searchCity}&taxonomy_description=${searchSpecialty}&limit=200`);
       const data = await response.json();
+
+      console.log('Raw NPI API response:', data);
       
       // do something with data if needed, e.g., filter or transform it before sending to client
-      // TODO: for duplicate entries, find credentials and/or telephone numbers
-      const filteredData = data.results.map((provider: any) => ({
+      // TODO: currently only returns providers with NPI-1, but we may want to include NPI-2 in the future, so we should consider how to handle that in the data structure
+      const filteredData = data.results
+      .filter((provider: any) => provider.enumeration_type === 'NPI-1')
+      .map((provider: any) => ({
         npi: provider.number,
         //inconsitent first name field, so check both 
         first_name: provider.basic.first_name || provider.basic.authorized_official_first_name,
         last_name: provider.basic.last_name || provider.basic.authorized_official_last_name,
+        credential: provider.basic.credential || provider.basic.authorized_official_credential,
         npi_type: provider.enumeration_type,
         city: provider.addresses[0].city,
         state: provider.addresses[0].state,
         last_updated: provider.basic.last_updated,
-        specialty: provider.taxonomies.map((taxonomy): NpiTaxonomy => taxonomy.desc).join(', ') 
+        specialty: provider.taxonomies.map((taxonomy): NpiTaxonomy => taxonomy.desc).join(', '),
+        // Include mailing address if available
+        mailingAddress: provider.addresses.find((address: any) => address.address_purpose === 'MAILING').address_1 || null,
       }));
 
   
       // Grouping providers with multiple entries into a single entry based on name
       const providerMap = new Map();
       for (const provider of filteredData) {
-        // TODO: could possibly filter safer with phone number or credentials
         const providerKey = `${provider.first_name} ${provider.last_name}`;
         if (!providerMap.has(providerKey)) {
           providerMap.set(providerKey, provider);

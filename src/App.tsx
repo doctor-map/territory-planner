@@ -4,6 +4,7 @@ import { useState } from 'react';
 function App() {
   const [ city, setCity ] = useState('');
   const [ searchResults, setSearchResults ] = useState([]);
+  const [ specialty, setSpecialty ] = useState('');
 
   const clicked = async () => {
     console.log('clicked');
@@ -30,11 +31,20 @@ function App() {
     <div>
       <h1>Territory Planner</h1>
       <input type="text" value={city} placeholder="Enter city name" onChange={ e => setCity(e.target.value)} />
+      <input type="text" value={specialty} placeholder="Enter specialty" onChange={ e => setSpecialty(e.target.value)} />
       <button onClick={clicked} >Search</button>
 
       <ul>
         {searchResults.map((result: any) => (
-          <li key={result.npi}> first name: {result.first_name}, last name: {result.last_name}, NPI type: {result.npi_type} specialty: {result.specialty}, last updated: {result.last_updated}</li>
+          <li key={result.npi}> 
+            first name: {result.first_name}, 
+            last name: {result.last_name}, 
+            NPI type: {result.npi_type}, 
+            specialty: {result.specialty}, 
+            last updated: {result.last_updated}, 
+            credential: {result.credential}, 
+            mailing address: {result.mailingAddress}
+          </li>
         ))}
       </ul>
     </div>
