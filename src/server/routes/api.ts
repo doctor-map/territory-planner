@@ -32,13 +32,14 @@ router.get('/npi', async (req, res) => {
 
     try {
       //TODO: search by specialty is currently hardcoded to oncology, ideally should be dynamic based on user input - need to troubleshoot next session
-      const response = await fetch(`https://npiregistry.cms.hhs.gov/api/?version=2.1&city=${searchCity}&taxonomy_description=oncology&limit=200`);
+      const response = await fetch(`https://npiregistry.cms.hhs.gov/api/?version=2.1&city=${searchCity}&taxonomy_description=${searchSpecialty}&limit=200`);
       const data = await response.json();
 
       console.log('Raw NPI API response:', data);
       
       // do something with data if needed, e.g., filter or transform it before sending to client
       // TODO: currently only returns providers with NPI-1, but we may want to include NPI-2 in the future, so we should consider how to handle that in the data structure
+      const filteredData = data.results
       .filter((provider: any) => provider.enumeration_type === 'NPI-1')
       .map((provider: any) => ({
         npi: provider.number,

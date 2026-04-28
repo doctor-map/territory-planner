@@ -5,3 +5,9 @@
   padding: 2rem;
   text-align: center;
 }
+
+.leaflet-container {
+  height: 400px;
+  width: 100%;
+  margin: 2rem auto;
+}
