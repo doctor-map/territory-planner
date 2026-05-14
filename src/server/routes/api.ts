@@ -28,14 +28,15 @@ router.get('/npi', async (req, res) => {
 
     const searchCity = req.query.city;
     const searchSpecialty = req.query.specialty;
-    console.log(`City in api.ts`, searchCity);
+    const searchState = req.query.state;
+    console.log(`City in api.ts`, searchCity, `State in api.ts`, searchState);
 
     try {
-      //TODO: search by specialty is currently hardcoded to oncology, ideally should be dynamic based on user input - need to troubleshoot next session
-      const response = await fetch(`https://npiregistry.cms.hhs.gov/api/?version=2.1&city=${searchCity}&taxonomy_description=${searchSpecialty}&limit=200`);
+      // NPI Registry API call to get providers based on city, state, and specialty
+      const response = await fetch(`https://npiregistry.cms.hhs.gov/api/?version=2.1&city=${searchCity}&state=${searchState}&taxonomy_description=${searchSpecialty}&limit=200`);
       const data = await response.json();
 
-      console.log('Raw NPI API response:', data);
+      // console.log('Raw NPI API response:', data);
       
       // do something with data if needed, e.g., filter or transform it before sending to client
       // TODO: currently only returns providers with NPI-1, but we may want to include NPI-2 in the future, so we should consider how to handle that in the data structure
@@ -71,7 +72,7 @@ router.get('/npi', async (req, res) => {
         }
       }
 
-      console.log('ProviderMap:', providerMap);
+      // console.log('ProviderMap:', providerMap);
 
       res.locals.data = providerMap.size > 0 ? Array.from(providerMap.values()) : [];
       
@@ -83,6 +84,33 @@ router.get('/npi', async (req, res) => {
         console.error('Error fetching NPI data:', error);
         return res.status(500).json({ error: 'Failed to fetch NPI data' });
     };
+});
+
+// Geocode route
+router.get('/geocode', async (req, res) => {
+  console.log('Geocode route hit');
+  const { address, city, state } = req.query;
+
+  // const address = req.query.address;
+  // console.log(`Address in geocode route: ${address}`);
+  // // Add City and State to the address to improve geocoding accuracy, since many providers may have the same mailing address but are in different cities/states
+  const fullAddress = `${address}, ${city || ''}, ${state || ''}`;
+  console.log(`Full address for geocoding: ${fullAddress}`);
+  
+  try {    
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`, {
+      headers: {
+        'User-Agent': 'TerritoryPlanner/1.0'
+      }
+    });
+    const data = await response.json();
+    console.log('Geocode API response:', data);
+    return res.json({ data });
+
+  } catch (error) {
+    console.error('Error fetching geocode data:', error);
+    return res.status(500).json({ error: 'Failed to fetch geocode data' });
+  }
 });
 
 export default router;
