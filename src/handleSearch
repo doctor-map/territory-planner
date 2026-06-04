@@ -1,0 +1,56 @@
+async function handleSearch(city: string, state: string, specialty: string) {
+    setIsLoading(true);
+    setError(null);
+    setProviders([]); // clear previous results while new ones load
+ 
+    try {
+      // Step 1: Get providers from our NPI backend route
+      const response = await fetch(
+        `${API_BASE}/npi?city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&specialty=${encodeURIComponent(specialty)}`
+      );
+ 
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+ 
+      const data = await response.json();
+      const fetchedProviders: Provider[] = data.data;
+ 
+      // Show the list immediately while geocoding happens in the background
+      setProviders(fetchedProviders);
+ 
+      // Step 2: Geocode all providers concurrently.
+      // Promise.all fires all geocode requests at the same time instead of
+      // waiting for each one to finish before starting the next.
+      // This is much faster for large result sets.
+      //
+      // NOTE: Nominatim has a rate limit of 1 req/second. For now we're
+      // firing all at once — this may need throttling for large result sets.
+      const geocodeResults = await Promise.all(
+        fetchedProviders.map(p => geocodeProvider(p))
+      );
+ 
+      // Step 3: Attach the lat/lon back to each provider
+      const geocodedProviders = fetchedProviders.map((provider, index) => ({
+        ...provider, // copy all existing fields
+        lat: geocodeResults[index][0],
+        lon: geocodeResults[index][1],
+      }));
+ 
+      setProviders(geocodedProviders);
+ 
+      // Step 4: Center the map on the first provider that was successfully geocoded
+      const firstMapped = geocodedProviders.find(p => p.lat != null && p.lon != null);
+      if (firstMapped) {
+        setCenterCoords([firstMapped.lat!, firstMapped.lon!]);
+      }
+ 
+    } catch (err) {
+      // Something went wrong — show the user a message instead of failing silently
+      console.error('Search failed:', err);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      // This runs whether the try succeeded or failed — always stop the loading state
+      setIsLoading(false);
+    }
+  }
