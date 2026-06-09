@@ -24,6 +24,8 @@ type NpiAddress = {
 // A provider can have multiple — e.g. "Internal Medicine" + "Oncology"
 type NpiTaxonomy = {
   desc: string; // human-readable specialty name
+  primary: boolean | string; // indicates the provider's main specialty, but can be inconsistent (sometimes "true" as a string)
+  state: string; // used to confirm the provider is licensed in the state we're searching for, but not always reliable
 };
 
 // Represents a single raw result from the NPI Registry API.
@@ -36,6 +38,7 @@ type NpiRawResult = {
   enumeration_type: string; // "NPI-1" = individual, "NPI-2" = organization
   basic: any;               // inconsistent fields — see transformProvider()
   addresses: NpiAddress[];
+  practiceLocations?: NpiAddress[]; // some records have this populated in addition to "addresses"
   taxonomies: NpiTaxonomy[];
 };
 
@@ -52,6 +55,7 @@ type Provider = {
   last_updated: string;
   specialty: string;
   mailingAddress: string | null;
+  practiceLocations: NpiAddress[];
   lat?: number | null; // added later during geocoding (optional for now)
   lon?: number | null;
 };
@@ -62,6 +66,16 @@ type Provider = {
 // Separating transformation logic from route handlers keeps
 // the routes short and easy to read. Each function does one job.
 // ============================================================
+
+// /**
+//  * Confirm the provider's primary taxonomy is set to "true" — this indicates their current main specialty.
+//  */
+// function isPrimaryTaxonomy(taxonomy: NpiTaxonomy): boolean {
+//   // The NPI API indicates the primary taxonomy with a "primary" field set to "true"
+//   // However, this field is sometimes missing or inconsistent, so we also check if the description contains "Primary"
+//   return taxonomy.primary === 'true' || taxonomy.desc.toLowerCase().includes('primary');
+// }
+
 
 /**
  * Picks the best available address from a provider's address list.
@@ -108,6 +122,11 @@ function getCityState(addresses: NpiAddress[]): { city: string; state: string } 
  * rest of the code can work with clean, predictable data.
  */
 function transformProvider(raw: NpiRawResult): Provider {
+
+  // TODO: We should ideally confirm the provider is licensed in the state we're searching for by checking the taxonomy's "state" field and checking if primary is set to true in the state we are searching for
+  // Find the primary taxonomy (specialty) for this provider
+  const primaryTaxonomy = raw.taxonomies.find(t=> t.primary === 'true') || raw.taxonomies[0] || { desc: 'Unknown' };
+
   const { city, state } = getCityState(raw.addresses);
 
   return {
@@ -126,6 +145,7 @@ function transformProvider(raw: NpiRawResult): Provider {
     // e.g. "Internal Medicine, Medical Oncology"
     specialty: raw.taxonomies.map(t => t.desc).join(', '),
     mailingAddress: getAddress(raw.addresses),
+    practiceLocations: raw.practiceLocations ?? [], // some records have this populated in addition to "addresses"
   };
 }
 
